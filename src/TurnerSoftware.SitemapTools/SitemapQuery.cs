@@ -77,15 +77,17 @@ namespace TurnerSoftware.SitemapTools
 			uriBuilder.Path = "sitemap.xml";
 			var defaultSitemapUri = uriBuilder.Uri;
 
-			var sitemapUris = new List<Uri>
-			{
-				defaultSitemapUri
-			};
-			
+			var sitemapUris = new List<Uri>();
+
 			var robotsFile = await new RobotsFileParser(HttpClient).FromUriAsync(baseUri, cancellationToken);
 			
 			sitemapUris.AddRange(robotsFile.SitemapEntries.Select(s => s.Sitemap));
 			sitemapUris = sitemapUris.Distinct().ToList();
+
+			if (!sitemapUris.Any())
+			{
+				sitemapUris.Add(defaultSitemapUri);
+			}
 			
 			var result = new HashSet<Uri>();
 			foreach (var uri in sitemapUris)
@@ -157,7 +159,6 @@ namespace TurnerSoftware.SitemapTools
 						if (SitemapParsers.ContainsKey(sitemapType))
 						{
 							var parser = SitemapParsers[sitemapType];
-
 							using (var stream = await response.Content.ReadAsStreamAsync())
 							{
 								cancellationToken.ThrowIfCancellationRequested();
@@ -222,6 +223,10 @@ namespace TurnerSoftware.SitemapTools
 
 				foreach (var indexFile in sitemapFile.Sitemaps)
 				{
+					if (indexFile.Location == null)
+					{
+						continue;
+					}
 					if (!sitemapFiles.ContainsKey(indexFile.Location))
 					{
 						sitemapUris.Push(indexFile.Location);
